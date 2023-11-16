@@ -23,8 +23,10 @@ typedef struct Account
     char acc_type[10];
     char address[600];
     struct Transaction *transactions;
+    struct Transaction *transactions_rear;  // Rear pointer for the transactions queue
     struct Account *next;
 } acct;
+
 
 // Hash table to store bank accounts
 acct *hashTable[HASH_TABLE_SIZE];
@@ -35,7 +37,6 @@ int hashFunction(int acc_no)
     return acc_no % HASH_TABLE_SIZE;
 }
 
-// Function to create a new bank account
 acct *createAccount(int acc_no, const char *name, double balance, const char *address, int age, long long int phone, const char *acc_type)
 {
     acct *newAccount = (acct *)malloc(sizeof(acct));
@@ -48,8 +49,10 @@ acct *createAccount(int acc_no, const char *name, double balance, const char *ad
     strncpy(newAccount->address, address, sizeof(newAccount->address));
     newAccount->next = NULL;
     newAccount->transactions = NULL;
+    newAccount->transactions_rear = NULL;  // Initialize the rear pointer for the transactions queue
     return newAccount;
 }
+
 
 // Function to insert a bank account into the hash table
 void insertAccount(acct *account)
@@ -156,16 +159,15 @@ struct Transaction *dequeue(struct Transaction **front, struct Transaction **rea
     return temp;
 }
 
-void processTransactions(acct *account, char type, double amount)
+void processTransactions(struct Transaction **front, struct Transaction **rear, acct *account, char type, double amount)
 {
-    // Create a new transaction
-    struct Transaction *newTransaction = createTransaction(type, amount);
+    // Enqueue the new transaction
+    enqueue(front, rear, type, amount);
 
     // Check if withdrawal amount is greater than balance
     if (type == 'W' && amount > account->balance)
     {
         printf("Transaction failed. Not enough balance.\n");
-        free(newTransaction); // Free memory allocated for the transaction
         return;
     }
 
@@ -178,10 +180,6 @@ void processTransactions(acct *account, char type, double amount)
     {
         account->balance -= amount;
     }
-
-    // Store the transaction in the account's transaction history
-    newTransaction->next = account->transactions;
-    account->transactions = newTransaction;
 }
 
 int main()
@@ -192,17 +190,19 @@ int main()
     double balance;
     int choice;
     int numbers = 1001;
+
     do
     {
         printf("Enter your choice: 1.Create an account 2.Display account details 3.Perform Transactions 5.Exit \n");
         scanf("%d", &choice);
+
         switch (choice)
         {
         case 1:
             // Read account details from user input
             {
                 printf("Enter account holder name: ");
-                /*fix issue*/ scanf("%s", name);
+                scanf("%s", name);
                 fflush(stdin);
                 printf("Enter deposited amount: ");
                 scanf("%lf", &balance);
@@ -216,64 +216,83 @@ int main()
                 fflush(stdin);
                 printf("Enter account holder address: ");
                 scanf(" %s", address);
+
+                // Create a new account
                 acct *newAccount = createAccount(numbers, name, balance, address, age, phone, acc_type);
+
+                // Initialize front and rear pointers for transactions queue
+                struct Transaction *front = NULL;
+                struct Transaction *rear = NULL;
+
+                // Set the transaction queue pointers in the account structure
+                newAccount->transactions = front; // Assuming transactions is a pointer to the queue
+                newAccount->transactions_rear = rear;
+
+                // Insert the account into the system
                 insertAccount(newAccount);
+
                 printf("Your account has been created successfully!!\nYour account number is, %d \n", numbers);
                 numbers++;
                 break;
             }
         case 2:
-        {
-            printf("Enter the account number you want to view: ");
-            scanf("%d", &acc_no);
-            acct *account = findAccount(acc_no);
-            if (account != NULL)
+            // Display account details
             {
-                displayAccount(account);
-            }
-            else
-            {
-                printf("Account not found.\n\n");
-            }
-            break;
-        }
-        case 3:
-        {
-            printf("Enter the account number for which you want to process transactions: ");
-            scanf("%d", &acc_no);
-            acct *account = findAccount(acc_no);
-            if (account != NULL)
-            {
-                char transactionType;
-                double transactionAmount;
-
-                // Accept input for each transaction
-                do
+                printf("Enter the account number you want to view: ");
+                scanf("%d", &acc_no);
+                acct *account = findAccount(acc_no);
+                if (account != NULL)
                 {
-                    printf("Enter transaction type ('D' for deposit, 'W' for withdrawal, 'E' to end): ");
-                    scanf(" %c", &transactionType);
-
-                    if (transactionType == 'E')
-                    {
-                        break;
-                    }
-
-                    printf("Enter transaction amount: ");
-                    scanf("%lf", &transactionAmount);
-
-                    processTransactions(account, transactionType, transactionAmount);
-                } while (1); // Loop until 'E' (end) is entered
-
-                printf("Transactions processed successfully.\n");
+                    displayAccount(account);
+                }
+                else
+                {
+                    printf("Account not found.\n\n");
+                }
+                break;
             }
-            else
+        case 3:
+            // Process transactions
             {
-                printf("Account not found.\n\n");
+                printf("Enter the account number for which you want to process transactions: ");
+                scanf("%d", &acc_no);
+                acct *account = findAccount(acc_no);
+                if (account != NULL)
+                {
+                    char transactionType;
+                    double transactionAmount;
+
+                    // Accept input for each transaction
+                    do
+                    {
+                        printf("Enter transaction type ('D' for deposit, 'W' for withdrawal, 'E' to end): ");
+                        scanf(" %c", &transactionType);
+
+                        if (transactionType == 'E')
+                        {
+                            break;
+                        }
+
+                        printf("Enter transaction amount: ");
+                        scanf("%lf", &transactionAmount);
+
+                        // Process transactions using the queue-based approach
+                        processTransactions(&(account->transactions), &(account->transactions_rear), account, transactionType, transactionAmount);
+
+                    } while (1); // Loop until 'E' (end) is entered
+
+                    printf("Transactions processed successfully.\n");
+                }
+                else
+                {
+                    printf("Account not found.\n\n");
+                }
+                break;
             }
-            break;
-        }
         default:
             break;
         }
     } while (choice != 5);
+
+    return 0;
 }
