@@ -165,20 +165,23 @@ void processTransactions(struct Transaction **front, struct Transaction **rear, 
     enqueue(front, rear, type, amount);
 
     // Check if withdrawal amount is greater than balance
-    if (type == 'W' && amount > account->balance)
+    if ((type == 'W'||type == 'w') && amount > account->balance)
     {
         printf("Transaction failed. Not enough balance.\n");
         return;
     }
 
     // Update account balance based on transaction type
-    if (type == 'D')
+    if (type == 'D'||type == 'd')
     {
         account->balance += amount;
     }
-    else if (type == 'W')
+    else if (type == 'W'||type == 'w')
     {
         account->balance -= amount;
+    }
+    else{
+        printf("Incorrect type chosen");
     }
 }
 
@@ -195,27 +198,28 @@ int main()
     {
         printf("Enter your choice: 1.Create an account 2.Display account details 3.Perform Transactions 5.Exit \n");
         scanf("%d", &choice);
-
+        while ((getchar()) != '\n');
         switch (choice)
         {
         case 1:
             // Read account details from user input
             {
                 printf("Enter account holder name: ");
-                scanf("%s", name);
-                fflush(stdin);
+                fgets(name, sizeof(name), stdin);
+                name[strcspn(name, "\n")] = '\0';
                 printf("Enter deposited amount: ");
                 scanf("%lf", &balance);
                 printf("Enter account type: ");
                 scanf("%s", acc_type);
-                fflush(stdin);
+                while ((getchar()) != '\n');
                 printf("Enter account holder phone number: ");
                 scanf("%lld", &phone);
                 printf("Enter account holder age: ");
                 scanf("%d", &age);
-                fflush(stdin);
+                while ((getchar()) != '\n');
                 printf("Enter account holder address: ");
-                scanf(" %s", address);
+                scanf("%[^\n]s",address);
+                while ((getchar()) != '\n');
 
                 // Create a new account
                 acct *newAccount = createAccount(numbers, name, balance, address, age, phone, acc_type);
@@ -259,6 +263,7 @@ int main()
                 acct *account = findAccount(acc_no);
                 if (account != NULL)
                 {
+                    printf("Welcome %s\n",account->name);
                     char transactionType;
                     double transactionAmount;
 
