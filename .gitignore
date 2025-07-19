@@ -1,1 +1,14 @@
+# Build artifacts
+banking/banking_system
+banking/*.o
+banking/accounts.dat
+
+# IDE files
+.vscode/
+*.swp
+*.swo
+
+# System files
+.DS_Store
+Thumbs.db
 project.c
